@@ -1,0 +1,85 @@
+parameters:
+- name: environment
+  displayName: 'Environment'
+  type: string
+- name: whatIf
+  displayName: 'provide empty string if this is not a test'
+  type: string
+  default: ''
+- name: serviceConnectionName
+  displayName: 'Name of the ADO service connection'
+  type: string
+- name: taskName
+  displayName: 'Name of the system'
+  type: string
+- name: pathBicepDir
+  type: string
+- name: location
+  displayName: 'Region'
+  type: string
+  values: ['westeurope']
+  default: 'westeurope'
+- name: resource
+  displayName: 'Resource to Deploy'
+  type: string
+
+steps:
+- task: AzureCLI@2
+  condition: ne('${{ parameters['resource'] }}', 'aks-ingress-controller')
+  displayName: '${{ parameters.taskName }}'
+  timeoutInMinutes: 120
+  inputs:
+    azureSubscription: ${{ parameters.serviceConnectionName }}
+    scriptType: 'bash'
+    useGlobalConfig: false
+    scriptLocation: inlineScript
+    ${{ if eq(parameters['whatIf'], '--what-if') }}:
+      inlineScript: |
+        az --version
+        az bicep restore --file ${{ parameters.pathBicepDir }}/${{ parameters.resource }}.bicep \ --force
+        echo "[$(date '+%d/%m/%Y %H:%M:%S')] Starting the deployment. '${{ parameters.resource }}_${{ parameters.location }}_${{ lower(parameters.environment) }}'"
+        az deployment sub what-if --location ${{ parameters.location }} \
+          --name '${{ parameters.resource }}_${{ parameters.location }}_${{ lower(parameters.environment) }}_${{ parameters.whatIf }}' \
+          --template-file ${{ parameters.pathBicepDir }}/${{ parameters.resource }}.bicep \
+          --parameters env=${{ parameters.environment }} \
+    ${{ else }}:
+      inlineScript: |
+        az --version
+        echo "[$(date '+%d/%m/%Y %H:%M:%S')] Starting the deployment '${{ parameters.resource }}_${{ parameters.location }}_${{ lower(parameters.environment) }}'"
+        az deployment sub create --location ${{ parameters.location }} \
+          --name '${{ parameters.resource }}_${{ parameters.location }}_${{ lower(parameters.environment) }}' \
+          --template-file ${{ parameters.pathBicepDir }}/${{ parameters.resource }}.bicep \
+          --parameters env=${{ parameters.environment }} \
+          --parameters location=${{ parameters.location }}
+- task: AzureCLI@2
+  condition: and(eq('${{ parameters['resource'] }}', 'aks-ingress-controller'), ne('${{parameters['whatIf'] }}', '--what-if'))
+  displayName: 'Deploy Kubernetes Ingress controller'
+  inputs:
+    azureSubscription: ${{ parameters.serviceConnectionName }}
+    scriptType: 'bash'
+    scriptLocation: inlineScript
+    inlineScript: |
+      wget -qO ./yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+      chmod a+x ./yq
+      ./yq --version
+      PARAFILE=parameters/$(echo ${{ parameters.environment }} | tr a-z A-Z).yaml
+      RG=$(./yq '.aksResourceGroupName' $PARAFILE)
+      RLIST=$(az resource list --resource-type Microsoft.ContainerService/managedClusters --resource-group $RG)
+      for rs in $(echo $RLIST | jq -r '.[] | @base64'); do
+            _jq() {
+                  echo $rs | base64 --decode | jq -r ${1}
+            }
+            AKS=$(echo $(_jq '.name') | grep $(./yq '.aksName' $PARAFILE))
+      done
+      helm version
+      KCLNTID=$(az aks show --name $AKS --resource-group $RG --query "identityProfile.kubeletidentity.clientId")
+      az aks get-credentials --resource-group $RG --name $AKS --overwrite-existing
+      kubelogin convert-kubeconfig -l azurecli
+      sed -i "s/KCLNTID/$KCLNTID/" ./atradius-controller/templates/scp.yaml
+      cat ./atradius-controller/templates/scp.yaml
+      helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+      helm repo update
+      helm dependency update ./atradius-controller/
+      helm dependency build ./atradius-controller/
+      helm template ./atradius-controller/
+      helm install atradius-nginx ./atradius-controller/ --create-namespace --namespace ingress-nginx

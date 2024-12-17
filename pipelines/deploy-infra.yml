@@ -1,0 +1,65 @@
+# File: universal-deployment.yml
+
+parameters:
+- name: resource
+  displayName: 'Resource to Deploy'
+  type: object
+  default:
+    - appplan
+   
+- name: environment
+  displayName: 'Environment'
+  type: string
+  values:
+    - dev
+   
+  default: 'dev'
+- name: location
+  displayName: 'Region'
+  type: string
+  values: ['westeurope']
+  default: 'westeurope'
+
+# name of pipeline run, as seen in ADO. Variables are defined in template file.
+name: ${{ parameters.location }}_${{ parameters.environment }}_$(Build.Reason)_$(Date:yyyyMMdd)$(Rev:.r)_$(Build.BuildId)
+
+# to skip deployment on code push (aka CI) use '[skip ci]' text in your comment text
+trigger: none
+
+pr:
+  autoCancel: true
+
+variables:
+  ${{ if in(parameters.Environment, 'dev') }}:
+    serviceConnectionName: 'atr-ccc-dev-templates-sc'
+  ${{ if in(parameters.Environment, 'sit') }}:
+    serviceConnectionName: 'atr-sharedcomp-sit-sd-sc'
+  ${{ if in(parameters.Environment, 'prd') }}:
+    serviceConnectionName: ''
+
+stages:
+  - stage: ${{ parameters.Environment }}_DoDeployment
+    displayName: DoDeployment_${{ parameters.Environment }}
+    jobs:
+      - deployment: DoDeployment_${{ parameters.Environment }}
+        displayName: DoDeployment_${{ parameters.environment }}
+        pool:
+          name: Atradius-Azure-Self-Hosted
+        workspace:
+          clean: all
+        environment: CCC-INFRA-TMPL-${{ upper(parameters.environment) }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - ${{ each res in parameters.resource }}:
+                    - template: ./tpl/create_deployment_tpl.yml
+                      parameters:
+                        environment: ${{ parameters.environment }}
+                        location: ${{ parameters.location }}
+                        serviceConnectionName: ${{ variables.serviceConnectionName }}
+                        pathBicepDir: 'infra'
+                        resource: ${{ res }}
+                        taskName: ${{ res }} deploy

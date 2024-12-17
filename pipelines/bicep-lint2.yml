@@ -1,0 +1,79 @@
+# File: fail-on-error-bicep-validation.yml
+# This is for static analisis of bicep files and linting
+trigger:
+  branches:
+    include:
+      - main  # Only on pr to main
+
+variables:
+  azureSubscription: 'atr-ccc-dev-templates-sc'  
+
+stages:
+- stage: ParallelValidation
+  displayName: 'Parallel Lint and Build'
+  jobs:
+  - job: LintJob
+    displayName: 'Lint Bicep Files'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - checkout: self
+      displayName: 'Checkout Repository'
+
+    - task: Bash@3
+      displayName: 'Set up Bicep CLI'
+      inputs:
+        targetType: 'inline'
+        script: |
+          set -e  # Fail the script on the first error
+          echo "Configurando Bicep CLI"
+          curl -Lo bicep https://github.com/Azure/bicep/releases/latest/download/bicep-linux-x64
+          chmod +x bicep
+          sudo mv bicep /usr/local/bin
+          echo "Bicep CLI installed"
+
+    - task: AzureCLI@2
+      displayName: 'Lint Bicep Files'
+      inputs:
+        azureSubscription: $(azureSubscription)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -e  # Fail the script on the first error
+          echo "IStaring lint for each bicep file"
+          errors=0
+          for file in $(find ./infra -name "*.bicep"); do
+            echo "Linting $file"
+            bicep build "$file" --no-restore --outfile /dev/null || {
+              echo "Error: Lint failed for $file"
+              errors=$((errors + 1))
+            }
+          done
+          if [ $errors -ne 0 ]; then
+            echo "No errors in lint."
+            exit 1
+          fi
+
+  - job: BuildJob
+    displayName: 'Build and Validate Bicep Templates'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - checkout: self
+      displayName: 'Checkout Repository'
+    - task: AzureCLI@2
+      displayName: 'Build and Validate Bicep Templates'
+      inputs:
+        azureSubscription: $(azureSubscription)
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          set -e  # Fail the script on the first error
+          echo "BUilding and validating bicep templates"
+          for file in $(find ./infra -name "*.bicep"); do
+            echo "Building templates $file"
+            az bicep build --file "$file" --outfile /dev/null || {
+              echo "Error validating $file"
+              exit 1
+            }
+          done

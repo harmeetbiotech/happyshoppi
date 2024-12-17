@@ -1,0 +1,80 @@
+subscriptionName : 'atr-ccc-dev-templates'
+monitoringWorkspaceId: '/subscriptions/aa9acc66-0add-46ba-8f80-b6c9efaa4c70/resourceGroups/tmpl-weu-dev-management-rg/providers/Microsoft.OperationalInsights/workspaces/tmpl-weu-dev-mgmt-log'
+
+
+
+##################################################################
+###  WebApp #####################
+###################################################################
+webAppRg: 'tmpl-weu-dev-innov-rg'
+webVnetRg: 'tmpl-weu-dev-connectivity-rg'
+webVnet: 'tmpl-weu-dev-connectivity-vnet'
+webAppSubnet: 'tmpl-weu-dev-app-snet'
+webPepSubnet: 'tmpl-weu-dev-pep-snet'
+webName: 'tmpl-weu-dev-claim'
+webAppInsights: 'tmpl-weu-dev-new-appi'
+webAppPlan: 'tmpl-weu-dev-asp-asp'
+kind: 'app,linux,container'
+dockerImage: 'innovweudevacr.azurecr.io/claims-orchestrator:latest'
+runtimeStack: 'DOCKER'
+//webAppLinuxFXversion: 'DOCKER|innovweudevacr.azurecr.io/claims-orchestrator:latest'
+webRoleAssignments:
+  - roleDefinitionIdOrName: 'Website Contributor'
+    detmplription: 'Website Contributor'
+    principalIds:
+      - '58625585-373d-4358-a066-007d42c10225'
+    principalType: 'Group'
+
+
+
+
+##################################################################
+###  appPlan#####################
+###################################################################
+appRg: 'tmpl-weu-dev-innov-rg'
+appPlanName: 'tmpl-weu-dev-asp'
+skuSize: 'P0v3'
+capacity: 1
+env: dev
+appRoleAssignments:
+  - roleDefinitionIdOrName: 'Web Plan Contributor'
+    detmplription: 'Web Plan Contributor'
+    principalIds:
+      - '58625585-373d-4358-a066-007d42c10225'
+    principalType: 'Group'
+
+###  app-insights #####################
+###################################################################
+appInsightsName: 'tmpl-weu-dev-new'
+appRG: 'tmpl-weu-dev-innov-rg'
+insightsRoleAssignments:
+  - roleDefinitionIdOrName: 'Application Insights Component Contributor'
+    detmplription: 'Application Insights Component Contributor'
+    principalIds:
+      - '58625585-373d-4358-a066-007d42c10225'
+    principalType: 'Group'
+
+###################################
+###  Keyvault #####################
+###################################################################
+keyVaultPePSubnetName: 'tmpl-weu-dev-data-snet'
+keyVaultRG: 'tmpl-weu-dev-kv-rg'
+keyVaultName: 'tmpl'
+keyvaultRoleAssignments:
+  - roleDefinitionIdOrName: "Key Vault Administrator"
+    description: "Key Vault Administrator"
+    principalIds:
+      - "667d5559-ef67-4e98-b772-d72cf865353b" #ccc-platform-engineers-contributors
+
+
+
+##################################################################
+###  User Managed Identities #####################
+###################################################################
+
+userManagedIdentities:
+  - name: 'newtestumi'
+    properties:
+      targetResourceGroupName: "tmpl-weu-dev-innov-rg"
+      azAADUserAssignedIdentityName: 'tmpl-weu-dev-newtesttt-umi-id'  
+

@@ -1,0 +1,175 @@
+subscriptionName : 'sc-weu-sit-mgmt-log'
+monitoringWorkspaceId: '/subscriptions/b2f82af8-d3d6-4f30-b078-ffddc279a5c1/resourceGroups/sc-weu-sit-management-rg/providers/Microsoft.OperationalInsights/workspaces/sc-weu-sit-mgmt-log'
+
+##################################################################
+###  AKS  #####################
+###################################################################
+
+aksResourceGroupName : 'sc-weu-sit-app-rg'
+aksUserManagedIdentity : 'sc-weu-sit-aks-01-id'
+aksKubeletManagedIdentity : 'sc-weu-sit-aks-02-id'
+aksName: 'app'
+aksClusterSkuTier: 'Free'
+aksClusterKubernetesVersion:  '1.26.0'
+aksSubnetName: 'sc-weu-sit-aks-snet'
+
+#Minimum 1 System pool needed
+nodePools:
+  - name: 'systempool'
+    count: 1
+    enableAutoScaling: true
+    maxCount: 2
+    maxPods: 30
+    minCount: 1
+    ## Mandatory
+    mode: 'System'
+    vmSize: 'Standard_DC4ads_v5'
+  - name: 'userpool01'
+    count: 2
+    enableAutoScaling: true
+    maxCount: 3
+    maxPods: 30
+    minCount: 1
+    mode: 'User'
+    vmSize: 'Standard_DC4ads_v5'
+
+
+aksRoleAssignments:
+
+  - roleDefinitionIdOrName: 'Azure Kubernetes Service RBAC Cluster Admin'
+    description: 'Cluster Admin Assignment'
+    principalIds:
+      - '99c39a2d-167b-4cd0-b53e-1940afeaa074'
+    principalType: 'Group'
+
+  - roleDefinitionIdOrName: 'Azure Kubernetes Service RBAC Cluster Admin'
+    description: 'Cluster Admin Assignment'
+    principalIds:
+      - '01ad374f-59c7-4473-8071-d12e8a1d56a5'
+    principalType: 'ServicePrincipal'
+
+##################################################################
+###  AZURE  SQL  #####################
+###################################################################
+
+azSQLServerName: 'store'
+azSQLPePSubnetName: 'sc-weu-sit-data-snet'
+azSQLResourceGroupName : 'sc-weu-sit-store-rg'
+## AAD Admin and Local Admin name should be different
+azSQLAdminUserName: 'scAdmin'
+azSQLAADObjectUsername: 'sc-aad-admin'
+azSQLAdminPasswordKeyvaultResourceId: '/subscriptions/b2f82af8-d3d6-4f30-b078-ffddc279a5c1/resourceGroups/sc-weu-sit-management-rg/providers/Microsoft.KeyVault/vaults/sc-weu-sit-mgmt-kv'
+azSQLAdminPasswordKeyvaultSecret: 'dbPassword'
+azSQLAADObjectId: '99c39a2d-167b-4cd0-b53e-1940afeaa074'
+azSQLDb:
+  - name: 'data'
+    sku:
+      name: 'Standard'
+      tier: 'Standard'
+      capacity: '20'
+
+  - name: 'replica'
+    sku:
+      name: 'Standard'
+      tier: 'Standard'
+      capacity: '20'
+
+
+##################################################################
+###  JumpHost Linux VM  #####################
+###################################################################
+
+jumpHostVmName: 'jumhost'
+jumHostVmSize: 'Standard_B2ms'
+jumHostUMI: 'sc-weu-sit-vm-01-id'
+jumHostVmSubnetName: 'sc-weu-sit-mgmt-snet'
+jumHostVmResoureGroupName: 'sc-weu-sit-jumhost-rg'
+jumHostVmkeyVaultResourceId: '/subscriptions/b2f82af8-d3d6-4f30-b078-ffddc279a5c1/resourceGroups/sc-weu-sit-management-rg/providers/Microsoft.KeyVault/vaults/sc-weu-sit-mgmt-kv'
+jumHostVmkeyVaultSecretName: 'vmPassword'
+jumHostVmOSDisk:
+  storageAccountType: 'Premium_LRS'
+  diskSizeGB: '64'
+jumHostVmManagedDisk:
+  - storageAccountType: 'Premium_LRS'
+    diskSizeGB: '64'
+jumpHostVmRoleAssignments:
+  - roleDefinitionIdOrName: 'Virtual Machine Administrator Login'
+    description: 'Vm Admin Assignment'
+    principalIds:
+      - '99c39a2d-167b-4cd0-b53e-1940afeaa074'
+    principalType: 'Group'
+
+##################################################################
+###  JumpHost Linux VM  #####################
+###################################################################
+
+windowsVmName: 'gg'
+windowsVmSize: 'Standard_A2m_v2'
+windowsvmUMI: 'sc-weu-sit-vm-01-id'
+windowsVmSubnetName: 'sc-weu-sit-data-snet'
+windowsVmResoureGroupName: 'sc-weu-sit-store-rg'
+windowsVmkeyVaultResourceId: '/subscriptions/aa9acc66-0add-46ba-8f80-b6c9efaa4c70/resourceGroups/sc-weu-sit-management-rg/providers/Microsoft.KeyVault/vaults/sc-weu-sit-mgmt-kv'
+windowsVmkeyVaultSecretName: vmPassword
+windowsVmOSDisk:
+  storageAccountType: 'Standard_LRS'
+  diskSizeGB: '127'
+windowsVmManagedDisk:
+  - storageAccountType: 'Standard_LRS'
+    diskSizeGB: '256'
+
+windowsVmRoleAssignments:
+  - roleDefinitionIdOrName: 'Virtual Machine Administrator Login'
+    description: 'Vm Admin Assignment'
+    principalIds:
+      - '99c39a2d-167b-4cd0-b53e-1940afeaa074'
+    principalType: 'Group'
+
+##################################################################
+###  REDIS  #####################
+###################################################################
+redisName: cache
+redisSubnetName: 'sc-weu-sit-data-snet'
+redisResoureGroupName: 'sc-weu-sit-store-rg'
+redisSKU:
+  name: 'Standard'
+  family: C
+  capacity: 1
+
+##################################################################
+###  Storage  #####################
+###################################################################
+storageName: gg
+storageSubnetName: 'sc-weu-sit-data-snet'
+storageResoureGroupName: 'sc-weu-sit-store-rg'
+storageSKU: 'Standard_LRS'
+storageRoleAssignments:
+  - roleDefinitionIdOrName: 'Storage Blob Data Contributor'
+    description: 'UMI Assignment'
+    principalIds:
+      - 'c60ae72f-0191-4b24-a5a6-0ab0e4b92c0a'
+    principalType: 'ServicePrincipal'
+
+##################################################################
+###  WebApp #####################
+###################################################################
+webAppRg: 'sc-weu-sit-app-rg'
+webVnetRg: 'sc-weu-sit-connectivity-rg'
+webVnet: 'sc-weu-sit-connectivity-vnet'
+webAppSubnet: 'sc-weu-sit-app-snet'
+webPepSubnet: 'sc-weu-sit-pep-snet'
+webName: 'sc-weu-sit-web'
+webEnv: 'sit'
+##################################################################
+###  cosmosdb #####################
+###################################################################
+cosmosdbAccountName: 'sc-weu-sit-dev-cosmos'
+cosmosdbDatabaseName: 'sc-weu-sit-cosmos-db'
+cosmosRG: 'sc-weu-sit-db-rg'
+cosmosPePSubnetName: 'sc-weu-sit-pep-snet'
+
+##################################################################
+###  Keyvault #####################
+###################################################################
+keyVaultPePSubnetName: 'sc-weu-sit-data-snet'
+keyVaultRG: 'sc-weu-sit-kv-rg'
+keyVaultName: 'sc'
