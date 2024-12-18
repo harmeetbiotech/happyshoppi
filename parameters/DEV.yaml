@@ -1,5 +1,5 @@
-subscriptionName : 'atr-ccc-dev-templates'
-monitoringWorkspaceId: '/subscriptions/aa9acc66-0add-46ba-8f80-b6c9efaa4c70/resourceGroups/tmpl-weu-dev-management-rg/providers/Microsoft.OperationalInsights/workspaces/tmpl-weu-dev-mgmt-log'
+subscriptionName : 'atr-ccc-psl-templates'
+#monitoringWorkspaceId: '/subscriptions/aa9acc66-0add-46ba-8f80-b6c9efaa4c70/resourceGroups/tmpl-weu-dev-management-rg/providers/Microsoft.OperationalInsights/workspaces/tmpl-weu-dev-mgmt-log'
 
 
 
